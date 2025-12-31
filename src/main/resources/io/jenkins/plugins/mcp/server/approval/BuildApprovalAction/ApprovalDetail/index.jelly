@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="Approval Request: ${it.request.jobFullName}">
+        <l:main-panel>
+            <h1>🔒 Build Approval Request</h1>
+            
+            <j:set var="req" value="${it.request}"/>
+            
+            <div class="jenkins-form-item">
+                <table class="jenkins-table">
+                    <tr>
+                        <th>Request ID</th>
+                        <td><code>${req.id}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Job</th>
+                        <td>
+                            <a href="${rootURL}/job/${req.jobFullName.replace('/', '/job/')}">${req.jobFullName}</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Requested By</th>
+                        <td>${req.requesterDisplayName} (${req.requesterId})</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            <j:choose>
+                                <j:when test="${req.status.name() == 'PENDING'}">
+                                    <span style="color: orange; font-weight: bold;">⏳ PENDING</span>
+                                </j:when>
+                                <j:when test="${req.status.name() == 'APPROVED'}">
+                                    <span style="color: green; font-weight: bold;">✅ APPROVED</span>
+                                    by ${req.approvedBy}
+                                </j:when>
+                                <j:when test="${req.status.name() == 'REJECTED'}">
+                                    <span style="color: red; font-weight: bold;">❌ REJECTED</span>
+                                    by ${req.rejectedBy}: ${req.rejectionReason}
+                                </j:when>
+                                <j:when test="${req.status.name() == 'EXPIRED'}">
+                                    <span style="color: gray; font-weight: bold;">⏰ EXPIRED</span>
+                                </j:when>
+                            </j:choose>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Created</th>
+                        <td>${req.createdAt}</td>
+                    </tr>
+                    <tr>
+                        <th>Expires</th>
+                        <td>${req.expiresAt} (${req.timeRemainingSeconds / 60} minutes remaining)</td>
+                    </tr>
+                    <j:if test="${req.triggeredBuildNumber != null}">
+                        <tr>
+                            <th>Build Number</th>
+                            <td>
+                                <a href="${rootURL}/job/${req.jobFullName.replace('/', '/job/')}/${req.triggeredBuildNumber}">
+                                    #${req.triggeredBuildNumber}
+                                </a>
+                            </td>
+                        </tr>
+                    </j:if>
+                </table>
+            </div>
+            
+            <j:if test="${req.parameters != null and !req.parameters.isEmpty()}">
+                <h2>Build Parameters</h2>
+                <table class="jenkins-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <j:forEach var="param" items="${req.parameters.entrySet()}">
+                            <tr>
+                                <td><code>${param.key}</code></td>
+                                <td>${param.value}</td>
+                            </tr>
+                        </j:forEach>
+                    </tbody>
+                </table>
+            </j:if>
+            
+            <j:if test="${req.pending}">
+                <h2>Actions</h2>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <form method="post" action="approve" style="display: inline;">
+                        <f:submit value="✅ Approve and Trigger Build" clazz="jenkins-button--primary"/>
+                    </form>
+                    
+                    <form method="post" action="reject" style="display: inline;">
+                        <input type="text" name="reason" placeholder="Rejection reason (optional)" 
+                               style="width: 300px; margin-right: 10px;"/>
+                        <f:submit value="❌ Reject" clazz="jenkins-button--destructive"/>
+                    </form>
+                </div>
+            </j:if>
+            
+            <div style="margin-top: 30px;">
+                <a href=".." class="jenkins-button">← Back to Approvals List</a>
+            </div>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+    <l:layout title="MCP Build Approvals">
+        <l:main-panel>
+            <h1>🔒 MCP Build Approval Requests</h1>
+            <p>Builds triggered via MCP for protected jobs require admin approval.</p>
+            
+            <j:set var="pending" value="${it.pendingApprovals}"/>
+            
+            <j:choose>
+                <j:when test="${pending.isEmpty()}">
+                    <div class="alert alert-info">
+                        <p>No pending approval requests.</p>
+                    </div>
+                </j:when>
+                <j:otherwise>
+                    <table class="jenkins-table">
+                        <thead>
+                            <tr>
+                                <th>Job</th>
+                                <th>Requested By</th>
+                                <th>Created</th>
+                                <th>Expires In</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <j:forEach var="request" items="${pending}">
+                                <tr>
+                                    <td>
+                                        <a href="${rootURL}/job/${request.jobFullName.replace('/', '/job/')}">${request.jobFullName}</a>
+                                    </td>
+                                    <td>${request.requesterDisplayName}</td>
+                                    <td>${request.createdAt}</td>
+                                    <td>${request.timeRemainingSeconds / 60} minutes</td>
+                                    <td>
+                                        <a href="${request.id}" class="jenkins-button jenkins-button--primary">
+                                            Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            </j:forEach>
+                        </tbody>
+                    </table>
+                </j:otherwise>
+            </j:choose>
+            
+            <h2>Configuration</h2>
+            <p>
+                <a href="${rootURL}/manage/configure-protected-jobs">Configure Protected Jobs</a>
+            </p>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

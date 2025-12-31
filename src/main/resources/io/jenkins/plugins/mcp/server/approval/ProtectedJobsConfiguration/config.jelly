@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
+    <f:section title="MCP Protected Jobs">
+        <f:entry title="Enable Protected Jobs" field="enabled"
+                 description="When enabled, jobs matching the patterns below will require admin approval before being triggered via MCP.">
+            <f:checkbox/>
+        </f:entry>
+        
+        <f:entry title="Protected Job Patterns" field="protectedJobPatterns"
+                 description="Regex patterns (one per line or comma-separated). Jobs matching these patterns will require admin approval. Examples: .*-prod-.*, deploy/production/.*, .*maintenance.*">
+            <f:textarea/>
+        </f:entry>
+        
+        <f:entry title="Notification Webhook URL" field="notificationWebhookUrl"
+                 description="Teams/Slack webhook URL to notify when approval is requested. Leave empty to only show in Jenkins UI.">
+            <f:textbox/>
+        </f:entry>
+        
+        <f:entry title="Approval Timeout (minutes)" field="approvalTimeoutMinutes"
+                 description="Pending approval requests expire after this time.">
+            <f:number min="1" max="1440" default="30"/>
+        </f:entry>
+    </f:section>
+</j:jelly>
