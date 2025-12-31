@@ -26,6 +26,7 @@
 
 package io.jenkins.plugins.mcp.server;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -118,9 +119,19 @@ public class Endpoint extends CrumbExclusion implements RootAction, HttpServletF
             SystemProperties.getBoolean(Endpoint.class.getName() + ".requireOriginMatch", true);
 
     /**
-     * JSON object mapper for serialization/deserialization
+     * JSON object mapper for serialization/deserialization.
+     * Configured to ignore unknown properties to ensure forward compatibility with newer MCP spec versions
+     * that may include additional fields (e.g., elicitation.form) not yet defined in the current SDK.
      */
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = createObjectMapper();
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        // Ignore unknown properties to support newer MCP clients that may send additional fields
+        // like elicitation.form that are not yet defined in the SDK version we use
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper;
+    }
 
     HttpServletSseServerTransportProvider httpServletSseServerTransportProvider;
     HttpServletStreamableServerTransportProvider httpServletStreamableServerTransportProvider;
@@ -395,6 +406,10 @@ public class Endpoint extends CrumbExclusion implements RootAction, HttpServletF
 
     private void handleSSE(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
+        if (!validOriginHeader(request, response)) {
+            return;
+        }
+        prepareMcpContext(request);
         httpServletSseServerTransportProvider.service(request, response);
     }
 
