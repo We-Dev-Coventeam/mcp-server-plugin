@@ -55,6 +55,7 @@ import io.jenkins.plugins.mcp.server.extensions.McpDtos.JobInfo;
 import io.jenkins.plugins.mcp.server.extensions.McpDtos.RebuildResult;
 import io.jenkins.plugins.mcp.server.tool.JenkinsMcpContext;
 import jakarta.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -142,7 +143,8 @@ public class DefaultMcpServer implements McpServerExtension {
         
         if (paramsAction != null && !paramsAction.getParameters().isEmpty()) {
             // Rebuild with same parameters
-            List<ParameterValue> paramValues = paramsAction.getParameters();
+            // Create new list to avoid issues with immutable collections
+            List<ParameterValue> paramValues = new ArrayList<>(paramsAction.getParameters());
             for (ParameterValue pv : paramValues) {
                 if (!pv.isSensitive()) {
                     paramsUsed.put(pv.getName(), pv.getValue());
@@ -152,12 +154,30 @@ public class DefaultMcpServer implements McpServerExtension {
             }
             var future = job.scheduleBuild2(0, new ParametersAction(paramValues), causeAction);
             if (future != null) {
+                // Wait briefly and check if build actually started
+                try {
+                    Object run = future.getStartCondition().get(5, java.util.concurrent.TimeUnit.SECONDS);
+                    if (run instanceof Run<?, ?> r) {
+                        return RebuildResult.success(r.getNumber(), paramsUsed);
+                    }
+                } catch (Exception e) {
+                    // Timeout or interruption - build may still be queued
+                    log.debug("Could not get build number immediately: {}", e.getMessage());
+                }
                 return RebuildResult.success(buildToRebuild.getNumber(), paramsUsed);
             }
         } else {
             // No parameters, just trigger
             var future = job.scheduleBuild2(0, causeAction);
             if (future != null) {
+                try {
+                    Object run = future.getStartCondition().get(5, java.util.concurrent.TimeUnit.SECONDS);
+                    if (run instanceof Run<?, ?> r) {
+                        return RebuildResult.success(r.getNumber(), paramsUsed);
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not get build number immediately: {}", e.getMessage());
+                }
                 return RebuildResult.success(buildToRebuild.getNumber(), paramsUsed);
             }
         }
